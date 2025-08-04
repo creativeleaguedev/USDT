@@ -6,6 +6,7 @@ import { fileURLToPath, URL } from 'node:url';
 export default defineConfig({
   plugins: [react()],
   define: {
+    Buffer: 'buffer',
     global: 'window',
     'process.env': {}
   },
