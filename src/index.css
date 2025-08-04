@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom styles for embedded widgets */
+.finlogix-container {
+  min-height: 60px;
+}
+
+.tradingview-widget-container {
+  position: relative;
+}
+
+.tradingview-widget-container iframe {
+  border-radius: 8px;
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+  .finlogix-container {
+    overflow-x: auto;
+  }
+  
+  .tradingview-widget-container {
+    height: 400px !important;
+  }
+}
