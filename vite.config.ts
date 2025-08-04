@@ -7,7 +7,7 @@ export default defineConfig({
   define: {
     global: 'window',
     'process.env': {},
-    Buffer: 'Buffer'
+    Buffer: 'window.Buffer'
   },
   server: {
     proxy: {
