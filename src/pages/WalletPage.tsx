@@ -198,10 +198,13 @@ const WalletPage: React.FC = () => {
       {/* Demo Portfolio Value */}
       <div className="bg-gradient-to-r from-cyan-500/10 to-purple-500/10 backdrop-blur-md border border-white/10 rounded-2xl p-6 text-center">
         <h2 className="text-2xl font-bold text-white mb-2">Demo Portfolio Value</h2>
-        <p className="text-yellow-400 text-sm font-medium mb-4">⚠️ (Not Real)</p>
+        <p className="text-green-400 text-sm font-medium mb-4">✅ Real Blockchain Balances</p>
         <div className="text-4xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
           ${wallet.totalUsdValue.toFixed(2)}
         </div>
+        <p className="text-gray-400 text-sm mt-2">
+          Fetched from live blockchain networks
+        </p>
       </div>
 
       {/* Deposit / Withdraw Buttons */}
@@ -249,8 +252,19 @@ const WalletPage: React.FC = () => {
                 ${usdtBalance.usdValue.toFixed(2)}
               </p>
               <p className="text-gray-400 text-sm">
-                ${usdtBalance.price.toFixed(2)} per USDT
+                {wallet.address.slice(0, 8)}...{wallet.address.slice(-8)}
               </p>
+              {wallet.mnemonic && (
+                <div className="mt-4">
+                  <p className="text-gray-400 text-sm mb-2">Recovery Phrase (12 words):</p>
+                  <div className="bg-yellow-500/20 border border-yellow-500/30 rounded-lg p-3">
+                    <p className="text-yellow-400 text-xs font-mono break-all">
+                      {wallet.mnemonic}
+                    </p>
+                  </div>
+                  <p className="text-red-400 text-xs mt-2">⚠️ Keep this phrase secure! It can restore your wallet.</p>
+                </div>
+              )}
             </div>
           </div>
           

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useAuth } from './AuthContext';
-import { generateWallet } from '../utils/walletGenerator';
+import { generateCryptoWallet, restoreWalletFromMnemonic, getAllBalances, WalletKeys, WalletAddresses } from '../utils/cryptoWallet';
 
 interface CryptoBalance {
   symbol: string;
@@ -19,6 +19,8 @@ interface CryptoBalance {
 interface Wallet {
   address: string;
   privateKey: string;
+  mnemonic: string;
+  addresses: WalletAddresses;
   cryptoBalances: CryptoBalance[];
   totalUsdValue: number;
 }
@@ -66,184 +68,12 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Fetch real crypto prices and balances
-  const fetchCryptoData = async (addresses: { [key: string]: string }) => {
-    try {
-      // Fetch current prices from CoinGecko
-      const priceResponse = await fetch(
-        '/api/v3/coins/markets?vs_currency=usd&ids=tether,bitcoin,ripple,solana&order=market_cap_desc&per_page=4&page=1&sparkline=false&price_change_percentage=24h'
-      );
-      const priceData = await priceResponse.json();
-
-      // Ensure priceData is an array before using find method
-      if (!Array.isArray(priceData)) {
-        throw new Error('API response is not an array');
-      }
-
-      // Demo Mode: Simulated balances for demonstration purposes
-      const cryptoBalances: CryptoBalance[] = [
-        {
-          symbol: 'USDT',
-          name: 'Tether USD',
-          balance: 0, // Demo balance - not real blockchain data
-          usdValue: 0,
-          price: priceData.find(coin => coin.id === 'tether')?.current_price || 1.00,
-          change24h: priceData.find(coin => coin.id === 'tether')?.price_change_percentage_24h || 0,
-          address: addresses.USDT,
-          icon: '₮',
-          image: priceData.find(coin => coin.id === 'tether')?.image || 'https://assets.coingecko.com/coins/images/325/large/Tether.png',
-          network: 'Ethereum',
-          networkColor: 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
-        },
-        {
-          symbol: 'BTC',
-          name: 'Bitcoin',
-          balance: 0, // Demo balance - not real blockchain data
-          usdValue: 0,
-          price: priceData.find(coin => coin.id === 'bitcoin')?.current_price || 43000,
-          change24h: priceData.find(coin => coin.id === 'bitcoin')?.price_change_percentage_24h || 0,
-          address: addresses.BTC,
-          icon: '₿',
-          image: priceData.find(coin => coin.id === 'bitcoin')?.image || 'https://assets.coingecko.com/coins/images/1/large/bitcoin.png',
-          network: 'Bitcoin',
-          networkColor: 'bg-orange-500/20 text-orange-400 border border-orange-500/30'
-        },
-        {
-          symbol: 'XRP',
-          name: 'Ripple',
-          balance: 0, // Demo balance - not real blockchain data
-          usdValue: 0,
-          price: priceData.find(coin => coin.id === 'ripple')?.current_price || 0.60,
-          change24h: priceData.find(coin => coin.id === 'ripple')?.price_change_percentage_24h || 0,
-          address: addresses.XRP,
-          icon: '◉',
-          image: priceData.find(coin => coin.id === 'ripple')?.image || 'https://assets.coingecko.com/coins/images/44/large/xrp-symbol-white-128.png',
-          network: 'XRP Ledger',
-          networkColor: 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
-        },
-        {
-          symbol: 'SOL',
-          name: 'Solana',
-          balance: 0, // Demo balance - not real blockchain data
-          usdValue: 0,
-          price: priceData.find(coin => coin.id === 'solana')?.current_price || 100,
-          change24h: priceData.find(coin => coin.id === 'solana')?.price_change_percentage_24h || 0,
-          address: addresses.SOL,
-          icon: '◎',
-          image: priceData.find(coin => coin.id === 'solana')?.image || 'https://assets.coingecko.com/coins/images/4128/large/solana.png',
-          network: 'Solana',
-          networkColor: 'bg-purple-500/20 text-purple-400 border border-purple-500/30'
-        }
-      ];
-
-      // Demo Mode: Simulate blockchain balance fetching for demonstration
-      // This is NOT connected to real blockchain networks
-      for (const crypto of cryptoBalances) {
-        try {
-          // Simulate demo blockchain API calls with realistic delays
-          await new Promise(resolve => setTimeout(resolve, 100));
-          
-          // Demo Mode: All balances are simulated for demonstration purposes
-          // These are NOT real cryptocurrency balances
-          switch (crypto.symbol) {
-            case 'USDT':
-              crypto.balance = 0; // Demo USDT balance - not real
-              break;
-            case 'BTC':
-              crypto.balance = 0; // Demo BTC balance - not real
-              break;
-            case 'XRP':
-              crypto.balance = 0; // Demo XRP balance - not real
-              break;
-            case 'SOL':
-              crypto.balance = 0; // Demo SOL balance - not real
-              break;
-          }
-        } catch (error) {
-          console.error(`Demo: Failed to simulate ${crypto.symbol} balance:`, error);
-          crypto.balance = 0; // Default to 0 on error
-        }
-      }
-
-      // Calculate USD values
-      cryptoBalances.forEach(crypto => {
-        crypto.usdValue = crypto.balance * crypto.price;
-      });
-
-      return cryptoBalances;
-    } catch (error) {
-      console.error('Failed to fetch crypto data:', error);
-      // Return fallback data
-      return [
-        {
-          symbol: 'USDT',
-          name: 'Tether USD',
-          balance: 1000,
-          usdValue: 1000,
-          price: 1.00,
-          change24h: 0,
-          address: addresses.USDT,
-          icon: '₮',
-          image: 'https://assets.coingecko.com/coins/images/325/large/Tether.png',
-          network: 'Ethereum',
-          networkColor: 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
-        },
-        {
-          symbol: 'BTC',
-          name: 'Bitcoin',
-          balance: 0,
-          usdValue: 0,
-          price: 43000,
-          change24h: 0,
-          address: addresses.BTC,
-          icon: '₿',
-          image: 'https://assets.coingecko.com/coins/images/1/large/bitcoin.png',
-          network: 'Bitcoin',
-          networkColor: 'bg-orange-500/20 text-orange-400 border border-orange-500/30'
-        },
-        {
-          symbol: 'XRP',
-          name: 'Ripple',
-          balance: 0,
-          usdValue: 0,
-          price: 0.60,
-          change24h: 0,
-          address: addresses.XRP,
-          icon: '◉',
-          image: 'https://assets.coingecko.com/coins/images/44/large/xrp-symbol-white-128.png',
-          network: 'XRP Ledger',
-          networkColor: 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
-        },
-        {
-          symbol: 'SOL',
-          name: 'Solana',
-          balance: 0,
-          usdValue: 0,
-          price: 100,
-          change24h: 0,
-          address: addresses.SOL,
-          icon: '◎',
-          image: 'https://assets.coingecko.com/coins/images/4128/large/solana.png',
-          network: 'Solana',
-          networkColor: 'bg-purple-500/20 text-purple-400 border border-purple-500/30'
-        }
-      ];
-    }
-  };
-
   const refreshBalances = async () => {
     if (!wallet || !user) return;
     
     setIsRefreshing(true);
     try {
-      const addresses = {
-        USDT: wallet.address,
-        BTC: generateWallet().address,
-        XRP: generateWallet().address,
-        SOL: generateWallet().address
-      };
-
-      const cryptoBalances = await fetchCryptoData(addresses);
+      const cryptoBalances = await getAllBalances(wallet.addresses);
       const totalUsdValue = cryptoBalances.reduce((sum, crypto) => sum + crypto.usdValue, 0);
 
       const updatedWallet = {
@@ -263,90 +93,42 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
 
   useEffect(() => {
     if (user && !wallet) {
-      // Generate or retrieve wallet for user
+      // Generate or retrieve wallet for user  
       const storedWallet = localStorage.getItem(`usdtbanc_wallet_${user.email}`);
       if (storedWallet) {
-        setWallet(JSON.parse(storedWallet));
+        const parsedWallet = JSON.parse(storedWallet);
+        // Check if it's an old wallet format and needs migration
+        if (!parsedWallet.mnemonic || !parsedWallet.addresses) {
+          // Generate new wallet with mnemonic
+          generateCryptoWallet().then(walletKeys => {
+            const newWallet = {
+              address: walletKeys.addresses.ETH, // Use ETH address as main address
+              privateKey: walletKeys.privateKeys.ETH,
+              mnemonic: walletKeys.mnemonic,
+              addresses: walletKeys.addresses,
+              cryptoBalances: [],
+              totalUsdValue: 0
+            };
+            setWallet(newWallet);
+            localStorage.setItem(`usdtbanc_wallet_${user.email}`, JSON.stringify(newWallet));
+          });
+        } else {
+          setWallet(parsedWallet);
+        }
       } else {
-        // Generate a deterministic wallet based on user email for persistence
-        const deterministicSeed = user.email + 'usdtbanc_seed';
-        const hash = deterministicSeed.split('').reduce((a, b) => {
-          a = ((a << 5) - a) + b.charCodeAt(0);
-          return a & a;
-        }, 0);
-        
-        // Generate deterministic addresses
-        const baseAddress = '0x' + Math.abs(hash).toString(16).padStart(40, '0').slice(0, 40);
-        const privateKey = Math.abs(hash * 2).toString(16).padStart(64, '0').slice(0, 64);
-        
-        const addresses = {
-          USDT: baseAddress,
-          BTC: '1' + Math.abs(hash * 3).toString(16).padStart(33, '0').slice(0, 33),
-          XRP: 'r' + Math.abs(hash * 4).toString(16).padStart(33, '0').slice(0, 33),
-          SOL: Math.abs(hash * 5).toString(16).padStart(44, '0').slice(0, 44)
-        };
-
-        const walletData = {
-          address: baseAddress,
-          privateKey: privateKey,
-          cryptoBalances: [
-            {
-              symbol: 'USDT',
-              name: 'Tether USD',
-              balance: 1000,
-              usdValue: 1000,
-              price: 1.00,
-              change24h: 0,
-              address: addresses.USDT,
-              icon: '₮',
-              image: 'https://assets.coingecko.com/coins/images/325/large/Tether.png',
-              network: 'Ethereum',
-              networkColor: 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
-            },
-            {
-              symbol: 'BTC',
-              name: 'Bitcoin',
-              balance: 0,
-              usdValue: 0,
-              price: 43000,
-              change24h: 0,
-              address: addresses.BTC,
-              icon: '₿',
-              image: 'https://assets.coingecko.com/coins/images/1/large/bitcoin.png',
-              network: 'Bitcoin',
-              networkColor: 'bg-orange-500/20 text-orange-400 border border-orange-500/30'
-            },
-            {
-              symbol: 'XRP',
-              name: 'Ripple',
-              balance: 0,
-              usdValue: 0,
-              price: 0.60,
-              change24h: 0,
-              address: addresses.XRP,
-              icon: '◉',
-              image: 'https://assets.coingecko.com/coins/images/44/large/xrp-symbol-white-128.png',
-              network: 'XRP Ledger',
-              networkColor: 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
-            },
-            {
-              symbol: 'SOL',
-              name: 'Solana',
-              balance: 0,
-              usdValue: 0,
-              price: 100,
-              change24h: 0,
-              address: addresses.SOL,
-              icon: '◎',
-              image: 'https://assets.coingecko.com/coins/images/4128/large/solana.png',
-              network: 'Solana',
-              networkColor: 'bg-purple-500/20 text-purple-400 border border-purple-500/30'
-            }
-          ],
-          totalUsdValue: 1000
-        };
-        setWallet(walletData);
-        localStorage.setItem(`usdtbanc_wallet_${user.email}`, JSON.stringify(walletData));
+        // Generate new wallet with real crypto addresses
+        generateCryptoWallet().then(walletKeys => {
+          const newWallet = {
+            address: walletKeys.addresses.ETH, // Use ETH address as main address
+            privateKey: walletKeys.privateKeys.ETH,
+            mnemonic: walletKeys.mnemonic,
+            addresses: walletKeys.addresses,
+            cryptoBalances: [],
+            totalUsdValue: 0
+          };
+          setWallet(newWallet);
+          localStorage.setItem(`usdtbanc_wallet_${user.email}`, JSON.stringify(newWallet));
+        });
       }
 
       // Load transactions
@@ -360,11 +142,16 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
   // Auto-refresh balances every minute
   useEffect(() => {
     if (wallet && user) {
-      refreshBalances(); // Initial load
-      const interval = setInterval(refreshBalances, 30000); // Every 30 seconds to avoid rate limiting
+      // Initial load with delay to allow wallet to be fully set
+      setTimeout(() => {
+        refreshBalances();
+      }, 1000);
+      
+      // Refresh every 2 minutes to avoid rate limiting
+      const interval = setInterval(refreshBalances, 120000);
       return () => clearInterval(interval);
     }
-  }, [wallet?.address, user]);
+  }, [wallet?.addresses, user]);
 
   const addTransaction = (transaction: Omit<Transaction, 'id' | 'timestamp'>) => {
     if (!user) return;

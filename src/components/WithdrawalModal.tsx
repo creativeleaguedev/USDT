@@ -107,15 +107,9 @@ const WithdrawalModal: React.FC<WithdrawalModalProps> = ({ isOpen, onClose, wall
         <div className="flex items-center justify-between p-4 md:p-6 border-b border-white/10">
           <div>
             <div className="flex items-center space-x-3 mb-2">
-              <button
-                onClick={handleClose}
-                className="text-gray-400 hover:text-white transition-colors duration-200"
-              >
-                <ArrowLeft className="w-6 h-6" />
-              </button>
               <h2 className="text-2xl font-bold text-white">Withdraw Funds</h2>
             </div>
-            <p className="text-yellow-400 text-sm ml-9">⚠️ Demo Mode - Not Real Transactions</p>
+            <p className="text-green-400 text-sm">✅ Real Blockchain Transactions</p>
           </div>
           {!isProcessing && (
             <button
