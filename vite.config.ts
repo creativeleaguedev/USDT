@@ -1,6 +1,5 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import { fileURLToPath, URL } from 'node:url';
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -21,8 +20,6 @@ export default defineConfig({
   },
   optimizeDeps: {
     exclude: ['lucide-react'],
-    esbuildOptions: {
-      inject: [fileURLToPath(new URL('node_modules/buffer', import.meta.url))]
-    }
+    include: ['buffer']
   },
 });
